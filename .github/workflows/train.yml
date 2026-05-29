@@ -34,5 +34,5 @@ jobs:
         name: trained-model
         path: |
           best_model.pth
-          skin_enhancer.onnx
+          lili.onnx
         retention-days: 30

@@ -1,4 +1,4 @@
-name: Train Skin Model
+name: Train lili Model & Convert NCNN
 
 on:
   push:
@@ -6,33 +6,50 @@ on:
   workflow_dispatch:
 
 jobs:
-  train:
+  train-and-convert:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+    
     - uses: actions/setup-python@v5
       with: { python-version: '3.10' }
     
-    - name: Install Deps
+    - name: Install Python Deps
       run: pip install -r requirements.txt
       
-    - name: 1. Crop & Align
+    - name: 1. Crop & Align Images
       run: python scripts/auto_align_crop.py
       
-    - name: 2. Generate Data
+    - name: 2. Generate Synthetic Data
       run: python scripts/generate_pairs.py
       
-    - name: 3. Train Model
+    - name: 3. Train Model (CPU)
       run: python scripts/train_model.py
       
-    - name: 4. Export ONNX
+    - name: 4. Export to ONNX
       run: python scripts/export_ncnn.py
       
-    - name: 5. Upload Artifacts
+    - name: 5. Convert ONNX → NCNN (FP16)
+      run: |
+        echo "⬇️ Downloading pre-built NCNN tools..."
+        wget -q https://github.com/Tencent/ncnn/releases/download/20240410/ncnn-20240410-ubuntu-2004.zip
+        unzip -q ncnn-*.zip
+        NCNN_DIR=$(ls -d ncnn-*)
+        
+        echo "🔄 Converting & Optimizing..."
+        ./$NCNN_DIR/bin/onnx2ncnn lili.onnx lili.param lili.bin
+        ./$NCNN_DIR/bin/ncnnoptimize lili.param lili.bin lili.param lili.bin 65536
+        
+        echo "✅ NCNN files generated:"
+        ls -lh lili.*
+      
+    - name: 6. Upload Final Artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: trained-model
+        name: skin-enhancer-ready
         path: |
-          best_model.pth
+          lili.param
+          lili.bin
           lili.onnx
+          lili.pth
         retention-days: 30

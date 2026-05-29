@@ -7,53 +7,52 @@ jobs:
   train-and-convert:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    
-    # ✅ BƯỚC MỚI: Liệt kê file để debug
-    - name: 🔍 Debug: Check file structure
-      run: |
-        echo "📂 Đang kiểm tra cấu trúc thư mục..."
-        find data/ -type f 2>/dev/null || echo "❌ Không thấy thư mục data/"
-        
-        echo "️ Tìm ảnh trong raw_inputs:"
-        ls -la data/raw_inputs/ 2>/dev/null || echo "❌ Thư mục raw_inputs trống hoặc chưa tạo"
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - uses: actions/setup-python@v5
-      with: { python-version: '3.10' }
-    
-    - name: Install Python Deps
-      run: pip install -r requirements.txt
-      
-    - name: 1. Crop & Align Images
-      run: python scripts/auto_align_crop.py
-      
-    - name: 2. Generate Synthetic Data
-      run: python scripts/generate_pairs.py
-      
-    - name: 3. Train Model (CPU)
-      run: python scripts/train_model.py
-      
-    - name: 4. Export to ONNX
-      run: python scripts/export_ncnn.py
-      
-    - name: 5. Convert ONNX → NCNN (FP16)
-      run: |
-        echo "⬇️ Downloading NCNN tools..."
-        wget -q https://github.com/Tencent/ncnn/releases/download/20240410/ncnn-20240410-ubuntu-2004.zip
-        unzip -q ncnn-*.zip
-        NCNN_DIR=$(ls -d ncnn-*)
-        
-        echo "🔄 Converting..."
-        ./$NCNN_DIR/bin/onnx2ncnn skin_enhancer.onnx skin_enhancer.param skin_enhancer.bin
-        ./$NCNN_DIR/bin/ncnnoptimize skin_enhancer.param skin_enhancer.bin skin_enhancer.param skin_enhancer.bin 65536
-        
-        ls -lh skin_enhancer.*
-      
-    - name: 6. Upload Final Artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: skin-enhancer-ready
-        path: |
-          skin_enhancer.param
-          skin_enhancer.bin
-        retention-days: 30
+      - name: 🔍 Debug: Check file structure
+        run: |
+          echo "📂 Đang kiểm tra cấu trúc thư mục..."
+          find data/ -type f 2>/dev/null || echo "❌ Không thấy thư mục data/"
+          echo "🔎 Tìm ảnh trong raw_inputs:"
+          ls -la data/raw_inputs/ 2>/dev/null || echo "❌ Thư mục raw_inputs trống hoặc chưa tạo"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Python Deps
+        run: pip install -r requirements.txt
+
+      - name: 1. Crop & Align Images
+        run: python scripts/auto_align_crop.py
+
+      - name: 2. Generate Synthetic Data
+        run: python scripts/generate_pairs.py
+
+      - name: 3. Train Model (CPU)
+        run: python scripts/train_model.py
+
+      - name: 4. Export to ONNX
+        run: python scripts/export_ncnn.py
+
+      - name: 5. Convert ONNX → NCNN (FP16)
+        run: |
+          echo "⬇️ Downloading NCNN tools..."
+          wget -q https://github.com/Tencent/ncnn/releases/download/20240410/ncnn-20240410-ubuntu-2004.zip
+          unzip -q ncnn-*.zip
+          NCNN_DIR=$(ls -d ncnn-*)
+          echo "🔄 Converting..."
+          ./$NCNN_DIR/bin/onnx2ncnn skin_enhancer.onnx skin_enhancer.param skin_enhancer.bin
+          ./$NCNN_DIR/bin/ncnnoptimize skin_enhancer.param skin_enhancer.bin skin_enhancer.param skin_enhancer.bin 65536
+          ls -lh skin_enhancer.*
+
+      - name: 6. Upload Final Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: skin-enhancer-ready
+          path: |
+            skin_enhancer.param
+            skin_enhancer.bin
+          retention-days: 30

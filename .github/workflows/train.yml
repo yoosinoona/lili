@@ -1,58 +1,47 @@
-name: Train Skin Model & Convert NCNN
+name: Train Skin Model
 
 on:
   workflow_dispatch:
 
 jobs:
-  train-and-convert:
+  train:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 🔍 Debug: Check file structure
+      - name: Debug Files
         run: |
-          echo "📂 Đang kiểm tra cấu trúc thư mục..."
-          find data/ -type f 2>/dev/null || echo "❌ Không thấy thư mục data/"
-          echo "🔎 Tìm ảnh trong raw_inputs:"
-          ls -la data/raw_inputs/ 2>/dev/null || echo "❌ Thư mục raw_inputs trống hoặc chưa tạo"
+          echo "=== File structure ==="
+          find . -name "*.png" -o -name "*.jpg" | head -20
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Install Python Deps
-        run: pip install -r requirements.txt
+      - name: Install Dependencies
+        run: pip install torch torchvision opencv-python numpy onnx onnxruntime pillow
 
-      - name: Crop & Align Images
-        run: python scripts/auto_align_crop.py
-
-      - name: Generate Synthetic Data
-        run: python scripts/generate_pairs.py
-
-      - name: Train Model (CPU)
-        run: python scripts/train_model.py
-
-      - name: Export to ONNX
-        run: python scripts/export_ncnn.py
-
-      - name: Convert ONNX → NCNN (FP16)
+      - name: Run Scripts
         run: |
-          echo "⬇️ Downloading NCNN tools..."
+          python scripts/auto_align_crop.py
+          python scripts/generate_pairs.py
+          python scripts/train_model.py
+          python scripts/export_ncnn.py
+
+      - name: Convert to NCNN
+        run: |
           wget -q https://github.com/Tencent/ncnn/releases/download/20240410/ncnn-20240410-ubuntu-2004.zip
           unzip -q ncnn-*.zip
           NCNN_DIR=$(ls -d ncnn-*)
-          echo "🔄 Converting..."
           ./$NCNN_DIR/bin/onnx2ncnn skin_enhancer.onnx skin_enhancer.param skin_enhancer.bin
           ./$NCNN_DIR/bin/ncnnoptimize skin_enhancer.param skin_enhancer.bin skin_enhancer.param skin_enhancer.bin 65536
-          ls -lh skin_enhancer.*
 
-      - name: Upload Final Artifacts
+      - name: Upload Model
         uses: actions/upload-artifact@v4
         with:
-          name: skin-enhancer-ready
+          name: skin-model-ncnn
           path: |
             skin_enhancer.param
             skin_enhancer.bin
-          retention-days: 30

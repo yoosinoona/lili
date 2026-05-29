@@ -1,8 +1,6 @@
 name: Train lili Model & Convert NCNN
 
 on:
-  push:
-    paths: ['data/raw_inputs/**', 'data/raw_targets/**', 'scripts/**', '.github/workflows/train.yml']
   workflow_dispatch:
 
 jobs:

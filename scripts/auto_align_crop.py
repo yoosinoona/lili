@@ -9,7 +9,6 @@ def smart_crop_face(input_path, output_path, target_size=512):
     h, w, _ = img.shape
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     
-    # Haar Cascade
     cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
     face_cascade = cv2.CascadeClassifier(cascade_path)
     faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=5, minSize=(50, 50))
@@ -17,7 +16,7 @@ def smart_crop_face(input_path, output_path, target_size=512):
     if len(faces) > 0:
         x, y, fw, fh = max(faces, key=lambda f: f[2]*f[3])
         cx, cy = x + fw//2, y + fh//2
-        box = int(max(fw, fh) * 1.6) # Padding 60%
+        box = int(max(fw, fh) * 1.6)
         x1, y1 = max(0, cx - box//2), max(0, cy - box//2)
         x2, y2 = min(w, cx + box//2), min(h, cy + box//2)
         crop = img[y1:y2, x1:x2]
@@ -35,16 +34,36 @@ def main():
     input_dir = "data/raw_inputs"
     target_dir = "data/raw_targets"
     final_dir = "data/pairs"
-    files = sorted([f for f in os.listdir(input_dir) if f.lower().endswith(('.png','.jpg','.jpeg'))])
     
+    # Kiểm tra thư mục tồn tại không
+    if not os.path.exists(input_dir):
+        print(f"❌ LỖI: Không tìm thấy thư mục '{input_dir}'")
+        return
+
+    # Lấy danh sách file ảnh (hỗ trợ cả .JPG, .PNG, .jpeg)
+    all_files = os.listdir(input_dir)
+    files = [f for f in all_files if f.lower().endswith(('.png','.jpg','.jpeg'))]
+    
+    if not files:
+        print("❌ LI: Thư mục 'data/raw_inputs/' trống hoặc không có ảnh hợp lệ.")
+        print("👉 File trong thư mục hiện tại:", all_files)
+        return
+
     print(f"🔍 Đang xử lý {len(files)} cặp ảnh...")
-    for idx, fname in enumerate(files):
-        if os.path.exists(os.path.join(target_dir, fname)):
-            new_name = f"{idx:03d}"
-            smart_crop_face(os.path.join(input_dir, fname), os.path.join(final_dir, f"{new_name}_input.png"))
-            smart_crop_face(os.path.join(target_dir, fname), os.path.join(final_dir, f"{new_name}_target.png"))
-            print(f"✅ Đã cắt cặp {idx}")
-    print("🎉 Crop hoàn tất.")
+    
+    success = 0
+    for idx, fname in enumerate(sorted(files)):
+        # Kiểm tra file target tương ứng
+        if not os.path.exists(os.path.join(target_dir, fname)):
+            print(f"⚠️  Bỏ qua {fname} vì thiếu file target.")
+            continue
+            
+        new_name = f"{idx:03d}"
+        smart_crop_face(os.path.join(input_dir, fname), os.path.join(final_dir, f"{new_name}_input.png"))
+        smart_crop_face(os.path.join(target_dir, fname), os.path.join(final_dir, f"{new_name}_target.png"))
+        success += 1
+        
+    print(f"🎉 Hoàn tất! Đã crop {success} cặp.")
 
 if __name__ == "__main__":
     main()

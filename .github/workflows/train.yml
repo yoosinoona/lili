@@ -1,4 +1,4 @@
-name: Train lili Model & Convert NCNN
+name: Train Skin Model & Convert NCNN
 
 on:
   workflow_dispatch:
@@ -9,6 +9,15 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    # ✅ BƯỚC MỚI: Liệt kê file để debug
+    - name: 🔍 Debug: Check file structure
+      run: |
+        echo "📂 Đang kiểm tra cấu trúc thư mục..."
+        find data/ -type f 2>/dev/null || echo "❌ Không thấy thư mục data/"
+        
+        echo "️ Tìm ảnh trong raw_inputs:"
+        ls -la data/raw_inputs/ 2>/dev/null || echo "❌ Thư mục raw_inputs trống hoặc chưa tạo"
+
     - uses: actions/setup-python@v5
       with: { python-version: '3.10' }
     
@@ -29,25 +38,22 @@ jobs:
       
     - name: 5. Convert ONNX → NCNN (FP16)
       run: |
-        echo "⬇️ Downloading pre-built NCNN tools..."
+        echo "⬇️ Downloading NCNN tools..."
         wget -q https://github.com/Tencent/ncnn/releases/download/20240410/ncnn-20240410-ubuntu-2004.zip
         unzip -q ncnn-*.zip
         NCNN_DIR=$(ls -d ncnn-*)
         
-        echo "🔄 Converting & Optimizing..."
-        ./$NCNN_DIR/bin/onnx2ncnn lili.onnx lili.param lili.bin
-        ./$NCNN_DIR/bin/ncnnoptimize lili.param lili.bin lili.param lili.bin 65536
+        echo "🔄 Converting..."
+        ./$NCNN_DIR/bin/onnx2ncnn skin_enhancer.onnx skin_enhancer.param skin_enhancer.bin
+        ./$NCNN_DIR/bin/ncnnoptimize skin_enhancer.param skin_enhancer.bin skin_enhancer.param skin_enhancer.bin 65536
         
-        echo "✅ NCNN files generated:"
-        ls -lh lili.*
+        ls -lh skin_enhancer.*
       
     - name: 6. Upload Final Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: skin-enhancer-ready
         path: |
-          lili.param
-          lili.bin
-          lili.onnx
-          lili.pth
+          skin_enhancer.param
+          skin_enhancer.bin
         retention-days: 30

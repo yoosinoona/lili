@@ -25,19 +25,19 @@ jobs:
       - name: Install Python Deps
         run: pip install -r requirements.txt
 
-      - name: 1. Crop & Align Images
+      - name: Crop & Align Images
         run: python scripts/auto_align_crop.py
 
-      - name: 2. Generate Synthetic Data
+      - name: Generate Synthetic Data
         run: python scripts/generate_pairs.py
 
-      - name: 3. Train Model (CPU)
+      - name: Train Model (CPU)
         run: python scripts/train_model.py
 
-      - name: 4. Export to ONNX
+      - name: Export to ONNX
         run: python scripts/export_ncnn.py
 
-      - name: 5. Convert ONNX → NCNN (FP16)
+      - name: Convert ONNX → NCNN (FP16)
         run: |
           echo "⬇️ Downloading NCNN tools..."
           wget -q https://github.com/Tencent/ncnn/releases/download/20240410/ncnn-20240410-ubuntu-2004.zip
@@ -48,7 +48,7 @@ jobs:
           ./$NCNN_DIR/bin/ncnnoptimize skin_enhancer.param skin_enhancer.bin skin_enhancer.param skin_enhancer.bin 65536
           ls -lh skin_enhancer.*
 
-      - name: 6. Upload Final Artifacts
+      - name: Upload Final Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: skin-enhancer-ready

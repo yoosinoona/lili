@@ -29,13 +29,16 @@ jobs:
           python scripts/generate_pairs.py
           python scripts/train_model.py
 
-      - name: Convert to NCNN via PNNX
+      - name: Convert to NCNN via PNNX (Auto-Latest)
         run: |
-          echo "️ Downloading PNNX (stable release)..."
-          wget -q https://github.com/nihui/pnnx/releases/download/20240513/pnnx-20240513-ubuntu.zip
-          unzip -q pnnx-20240513-ubuntu.zip
+          echo "🔍 Fetching latest PNNX release URL..."
+          PNNX_URL=$(curl -s https://api.github.com/repos/nihui/pnnx/releases/latest | grep "browser_download_url.*ubuntu" | head -n 1 | sed 's/.*"browser_download_url": "//;s/".*//')
+          if [ -z "$PNNX_URL" ]; then echo "❌ Không tìm thấy link PNNX"; exit 1; fi
           
-          # Tìm file executable pnnx
+          echo "⬇️ Downloading PNNX..."
+          wget -q "$PNNX_URL"
+          unzip -q *.zip
+          
           PNNX_BIN=$(find . -name "pnnx" -type f | head -n 1)
           chmod +x "$PNNX_BIN"
           
